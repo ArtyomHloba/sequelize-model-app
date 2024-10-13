@@ -1,0 +1,15 @@
+###200 {user}
+PATCH http://localhost:5000/api/users/1
+Content-Type: application/json
+
+{
+  "nickname": "Ivo"
+}
+
+###404 {user}
+PATCH http://localhost:5000/api/users/1000
+Content-Type: application/json
+
+{
+  "nickname": "Ivo"
+}

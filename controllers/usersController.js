@@ -1,6 +1,9 @@
 const bcrypt = require('bcrypt');
 const _ = require('lodash');
 const { User } = require('./../models');
+const createHttpError = require('http-errors');
+const { where } = require('sequelize');
+const { raw } = require('express');
 
 module.exports.createUser = async (req, res, next) => {
   const { body } = req;
@@ -24,11 +27,93 @@ module.exports.createUser = async (req, res, next) => {
 };
 
 module.exports.getUsers = async (req, res, next) => {
-  res.status(501).send('GET /api/users Not Implemented');
+  const {
+    query: { page, results },
+  } = req;
+
+  const limit = results;
+  const offset = (page - 1) * results;
+
+  try {
+    const foundUsers = await User.findAll({
+      attributes: { exclude: ['passwHash', 'createdAt', 'updatedAt'] },
+      limit,
+      offset,
+      raw: true,
+      orrder: ['id'],
+    });
+    res.status(200).send(foundUsers);
+  } catch (error) {
+    next(error);
+  }
 };
 
-module.exports.getUserById = async (req, res, next) => {};
+module.exports.getUserById = async (req, res, next) => {
+  const {
+    params: { userId },
+  } = req;
 
-module.exports.updateUserById = async (req, res, next) => {};
+  try {
+    const foundUser = await User.findByPk(userId, {
+      raw: true,
+      attributes: { exclude: ['passwHash', 'createdAt', 'updatedAt'] },
+    });
 
-module.exports.deleteUserById = async (req, res, next) => {};
+    if (!foundUser) {
+      return next(createHttpError(404, 'User Not Found'));
+    }
+
+    res.status(200).send({ data: foundUser });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports.updateUserById = async (req, res, next) => {
+  const {
+    body,
+    params: { userId },
+  } = req;
+
+  try {
+    const [, [updatedUser]] = await User.update(body, {
+      where: { id: userId },
+      raw: true,
+      returning: true,
+    });
+
+    if (!updatedUser) {
+      return next(createHttpError(404, 'User Not Found'));
+    }
+
+    const prepatedUser = _.omit(updatedUser, [
+      'passwHash',
+      'createdAt',
+      'updatedAt',
+    ]);
+
+    res.status(200).send({ data: prepatedUser });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports.deleteUserById = async (req, res, next) => {
+  const {
+    params: { userId },
+  } = req;
+
+  try {
+    const deletedCount = await User.destroy({
+      where: { id: userId },
+    });
+
+    if (deletedCount === 0) {
+      return next(createHttpError(404, 'User Not Found'));
+    }
+
+    res.status(204).send({ message: 'User deleted' });
+  } catch (error) {
+    next(error);
+  }
+};

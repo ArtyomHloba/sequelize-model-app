@@ -1,0 +1,5 @@
+## 200 {user}
+GET http://localhost:5000/api/users/5
+
+### 404 Not found
+GET http://localhost:5000/api/users/0
