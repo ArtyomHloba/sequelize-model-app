@@ -1,11 +1,23 @@
+const bcrypt = require('bcrypt');
+const _ = require('lodash');
 const { User } = require('./../models');
 
 module.exports.createUser = async (req, res, next) => {
   const { body } = req;
 
   try {
+    const SALT_RAUNDS = 10;
+    body.passwHash = await bcrypt.hash(body.passwHash, SALT_RAUNDS);
+
     const createdUser = await User.create(body);
-    res.status(201).send(createdUser.get());
+
+    const prepatedUser = _.omit(createdUser.get(), [
+      'passwHash',
+      'createdAt',
+      'updatedAt',
+    ]);
+
+    res.status(201).send(prepatedUser);
   } catch (error) {
     next(error);
   }
