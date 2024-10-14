@@ -1,19 +1,13 @@
-const bcrypt = require('bcrypt');
 const _ = require('lodash');
-const { User } = require('./../models');
 const createHttpError = require('http-errors');
-const { where } = require('sequelize');
-const { raw } = require('express');
+const { User } = require('./../models');
 
+// TODO yup validation mw (422)
 module.exports.createUser = async (req, res, next) => {
   const { body } = req;
 
   try {
-    const SALT_RAUNDS = 10;
-    body.passwHash = await bcrypt.hash(body.passwHash, SALT_RAUNDS);
-
     const createdUser = await User.create(body);
-
     const prepatedUser = _.omit(createdUser.get(), [
       'passwHash',
       'createdAt',
@@ -31,6 +25,7 @@ module.exports.getUsers = async (req, res, next) => {
     query: { page, results },
   } = req;
 
+  // TODO pagination mw
   const limit = results;
   const offset = (page - 1) * results;
 
@@ -39,12 +34,12 @@ module.exports.getUsers = async (req, res, next) => {
       attributes: { exclude: ['passwHash', 'createdAt', 'updatedAt'] },
       limit,
       offset,
+      order: ['id'],
       raw: true,
-      orrder: ['id'],
     });
-    res.status(200).send(foundUsers);
+    res.status(200).send({ data: foundUsers });
   } catch (error) {
-    next(error);
+    next(err);
   }
 };
 
@@ -75,6 +70,7 @@ module.exports.updateUserById = async (req, res, next) => {
     params: { userId },
   } = req;
 
+  // TODO yup validation mw (422)
   try {
     const [, [updatedUser]] = await User.update(body, {
       where: { id: userId },
@@ -112,7 +108,7 @@ module.exports.deleteUserById = async (req, res, next) => {
       return next(createHttpError(404, 'User Not Found'));
     }
 
-    res.status(204).send({ message: 'User deleted' });
+    res.status(204).end();
   } catch (error) {
     next(error);
   }
