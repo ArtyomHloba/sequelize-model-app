@@ -2,7 +2,7 @@
 const { Model, Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 
-const SALT_RAUNDS = 10;
+const SALT_ROUNDS = Number(process.env.SALT_ROUNDS);
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     /**
@@ -50,7 +50,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         set (value) {
-          this.setDataValue('passwHash', bcrypt.hashSync(value, SALT_RAUNDS));
+          this.setDataValue('passwHash', bcrypt.hashSync(value, SALT_ROUNDS));
         },
       },
       birthday: {
@@ -86,3 +86,11 @@ module.exports = (sequelize, DataTypes) => {
   );
   return User;
 };
+
+// passwHash <-> passw_hash
+// model           table
+// { field: 'passw_hash' }
+
+// isDualSim->is_dual_sim
+// isNfs -> is_nfc
+// isNFC -> { field: 'is_nfc' } -> is_nfc (is_n_f_c)

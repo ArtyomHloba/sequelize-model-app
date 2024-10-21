@@ -1,13 +1,12 @@
 const { Router } = require('express');
+const { tasksController } = require('../controllers');
 
 const tasksRouter = Router();
 
 tasksRouter
   .route('/')
   .post(() => {})
-  .get((req, res, next) => {
-    res.status(501).send('proverka');
-  });
+  .get(tasksController.getTasks);
 
 tasksRouter
   .route('/:taskId')

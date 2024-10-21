@@ -5,16 +5,22 @@ const { User } = require('./../models');
 // TODO yup validation mw (422)
 module.exports.createUser = async (req, res, next) => {
   const { body } = req;
-
+  console.log(body);
   try {
     const createdUser = await User.create(body);
-    const prepatedUser = _.omit(createdUser.get(), [
+
+    // const prepatedUser = { ...createdUser.get() };
+    // delete prepatedUser.passwHash;
+    // delete prepatedUser.createdAt;
+    // delete prepatedUser.updatedAt;
+
+    const preparedUser = _.omit(createdUser.get(), [
       'passwHash',
       'createdAt',
       'updatedAt',
     ]);
 
-    res.status(201).send({ data: prepatedUser });
+    res.status(201).send({ data: preparedUser });
   } catch (error) {
     next(error);
   }
@@ -94,6 +100,47 @@ module.exports.updateUserById = async (req, res, next) => {
   }
 };
 
+module.exports.updateOrCreateUserById = async (req, res, next) => {
+  // знайти конистувача 1
+  // якщо існує - оновити 1
+  // інакше - створити    1
+  //  1 + 1 = 2
+
+  // спробувати оновити 1
+  // якщо оновилося - ок 0
+  // інакше - створити 1
+  // 1 + 0 = 1 or 1 + 1 = 2
+
+  const {
+    body,
+    params: { userId },
+  } = req;
+
+  // TODO yup validation mw (422)
+  try {
+    const [, [updatedUser]] = await User.update(body, {
+      where: { id: userId },
+      raw: true,
+      returning: true,
+    });
+
+    if (!updatedUser) {
+      body.id = userId;
+      return next();
+    }
+
+    const prepatedUser = _.omit(updatedUser, [
+      'passwHash',
+      'createdAt',
+      'updatedAt',
+    ]);
+
+    res.status(200).send({ data: prepatedUser });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports.deleteUserById = async (req, res, next) => {
   const {
     params: { userId },
@@ -109,6 +156,30 @@ module.exports.deleteUserById = async (req, res, next) => {
     }
 
     res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports.getUsersTasks = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    // find user
+    // if not exists => 404
+    // else find his tasks
+
+    const foundUser = await User.findByPk(userId);
+
+    if (!foundUser) {
+      return next(createHttpError(404, 'User Not Found'));
+    }
+
+    const foundTasks = await foundUser.getTasks({
+      attributes: { exclude: ['createdAt', 'updatedAt'] },
+      raw: true,
+    });
+
+    res.status(200).send({ data: foundTasks });
   } catch (error) {
     next(error);
   }
